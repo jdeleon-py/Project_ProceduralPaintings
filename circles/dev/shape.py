@@ -48,7 +48,6 @@ if __name__ == "__main__":
 
 		shape1.update()
 		window.blit(shape1.surf, shape1.rect)
-
 		shape2.update()
 		window.blit(shape2.surf, shape2.rect)
 
