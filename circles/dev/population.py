@@ -1,7 +1,7 @@
 # POPULATION CLASS
 
 import random
-from agent import Agent
+from painting import Painting
 
 class Population:
 	'''
