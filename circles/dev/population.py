@@ -1,6 +1,7 @@
 # POPULATION CLASS
 
 import random
+from figure import Figure
 from painting import Painting
 
 class Population:
@@ -20,13 +21,14 @@ class Population:
 		- the size of the target
 		- array of children agent objects
 	'''
-	def __init__(self, max_population, mutation_rate, target):
+	def __init__(self, max_population, mutation_rate, target_path):
 		self.max_population = max_population
 		self.mutation_rate = mutation_rate
-		self.target = target
+		self.target_path = target_path
+		self.target = Figure(self.target_path)
 		self.target_size = len(self.target)
 
-		self.population = [Agent(self.target_size) for _ in range(0, self.max_population)]
+		self.population = [Painting(self.width, self.height, self.target_size) for _ in range(0, self.max_population)]
 		self.children = []
 
 	def choose_parent(self, weight):
@@ -34,7 +36,7 @@ class Population:
 
 	def generate_next_generation(self):
 		self.children = []
-		weights = [self._get_fitness(agent) for agent in self.population]
+		weights = [self.target.calculate_fitness(painting) for painting in self.population]
 
 		for _ in range(0, len(self.population), 2):
 			parent1 = self.choose_parent(weights)
