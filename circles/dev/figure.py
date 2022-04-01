@@ -1,12 +1,8 @@
 # IMAGE PROCESSING CLASS
 
 import numpy as np
+import imgcompare
 from PIL import Image
-
-# For testing:
-'''
-from painting import Painting
-'''
 
 class Figure:
 	'''
@@ -28,35 +24,44 @@ class Figure:
 		self.image = self.convert_image()
 		self.width, self.height = self.image.size
 		self.data = self.get_color_data(self.image)
+		self.map = self.data.reshape(self.height, self.width, 3) #### this one line could have been the problem area this whole time!!!!!!!!!!
 
 	def get_color_data(self, image):
+		'''
+		- returns the RGB coordinates of each pixel in the reference image
+		- returns a one-dimensional array
+		'''
 		return np.array(Image.Image.getdata(image))
 
 	def convert_image(self):
+		'''
+		- some images are in black & white, RGBA, etc...
+		- this method normalizes all reference images to be in the RGB format
+		'''
 		return self.image.convert('RGB')
 
 	def calculate_fitness(self, input_painting):
 		'''
 		- for each pixel, determine the mean error of the color map
 		'''
-		fitness = 255 - np.abs(input_painting - self.data)
-		fitness = fitness.sum(axis = 1) / 3
-		return fitness.mean()
+		input_painting = input_painting.phenotype.convert('RGB')
+		diff1_percent = imgcompare.image_diff_percent(self.image, input_painting)
+		return 100 - diff1_percent
 
 	def close_image(self):
+		'''
+		'''
 		self.image.close()
 
 
 if __name__ == "__main__":
-	target = Figure('../lib/test_target.png')
-	painting = Painting(width = target.width, height = target.height, size = 500)
-	painting.save_painting('0')
+	target = Figure('../lib/test_target1.png')
 
-	painting_image1 = Figure('../lib/test_painting0.png')
-	fitness1 = target.calculate_fitness(painting_image1.data)
-
-	painting_image2 = Figure('../lib/test_target.png')
-	fitness2 = target.calculate_fitness(painting_image2.data)
-
-	print("Painting Fitness #1 -> (A generated painting):          {}".format(fitness1))
-	print("Painting Fitness #2 -> (A replica of the target image): {}".format(fitness2))
+	print('{}'.format(target.map))
+	print('{}'.format(target.map.shape))
+	'''
+	for i in range(0, 30):
+		painting = Painting(width = target.width, height = target.height, size = 500)
+		fitness = target.calculate_fitness(painting)
+		print("Painting Fitness #{0} -> (A generated painting): {1}".format(i + 1, fitness))
+	'''
