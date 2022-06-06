@@ -1,77 +1,89 @@
 # SHAPE CLASS
 
-import pygame
+import math
 import random
-from pygame.locals import QUIT
+from hyperparameters import Hyperparameters as hyp
 
-class Shape(pygame.sprite.Sprite):
+class Shape:
 	'''
 	METHODS:
-		- ability to draw a circle continuously to the screen
-		- ability to calculate the fitness of the object's "genotype"
-		- ability to display the object's phenotype as the combination of the object's genotype as a string
-		- ability to create a new object whose genotype is the split and combined genotypes of the two parent objects
-		- ability to change an object's genotype based on a probabilistic outcome
+		- ability to draw the shape (circle) given a predefined tool
+		- ability to define a maximum dimension of the shape's size
+		- ability to define colors for shapes based on the shape's center pixel's position
+		- ability to define the boundary coordinates for the shape based 
+		  on the shape's center and radius
+		- ability to readout the shape's specs
 
 	ATTRIBUTES:
-		- transparency (alpha) value of the shape (randomly generated) 
-		- color tuple of the shape (randomly generated) 
-		- coordinate tuple of the shape (randomly generated) 
-		- dimensions of the shape (randomly generated) 
-
-		- surface object for the shape to be generated onto
-		- encoded array representing the agent's genotype
-		- Ex. [(x, y, z, alpha), (x_cor, y_cor), radius]
+		- the 2D pixel RGB map of a reference image (target)
+		- the width and height of a reference image
+		- a randomly defined radius, with a maximum size being the 
+		  hypotenuse of the reference image's dimensions
+		- a randomly defined coordinate representing the shape's center
+		- a tuple of RGBA values for the shape
 	'''
-	def __init__(self, width, height):
-		pygame.sprite.Sprite.__init__(self)
-
+	def __init__(self, colormap, width, height, factor):
+		self.colormap = colormap
 		self.width = width
 		self.height = height
-
-		self.transparency = random.randint(0, 255)
-		self.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), self.transparency)
-		self.coordinates = (random.randint(0, self.width), random.randint(0, self.height))
-		self.radius = random.randint(1, int(self.width))
-
-		self.surf = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-		self.rect = self.surf.get_rect()
-
-		#self.genotype = [self.color, self.coordinates, self.radius]
-		#self.fitness = 0
+		self.factor = factor
+		self.radius = int(0.5 * random.gammavariate(self.factor, 0.1 * self.get_hypotenuse()))
+		self.center = (random.randint(0, self.width - 1), random.randint(0, self.height - 1))
+		self.color = self.define_color()
 
 	def __str__(self):
-		return "Genotype: {}".format(self.genotype)
+		'''
+		- reads out key specs fo the shape -> (color, center coordinate, radius)
+		'''
+		return "Color: {0}; Radius: {1}; Center: {2}".format(self.color, self.radius, self.center)
 
-	def update(self):
-		#pygame.draw.circle(self.surf, self.genotype[0], self.genotype[1], self.genotype[2])
-		pygame.draw.circle(self.surf, self.color, self.coordinates, self.radius)
+	def define_color(self):
+		'''
+		- accessing the color map's dimensions to extract each RGB value
+		- color is based on the shape's center coordinate
+		- transparency values are determined as such:
+			- if the shape is larger, then the shape is more transparent
+			- larger, more transparent shapes will occupy the background,
+			  while smaller, more opaque shapes will occupy the foreground
+		'''
+		factor = hyp.TRANSLUCENCY_FACTOR * self.get_hypotenuse()
+		R = self.colormap[self.center[1]][self.center[0]][0]
+		G = self.colormap[self.center[1]][self.center[0]][1]
+		B = self.colormap[self.center[1]][self.center[0]][2]
+		A = (lambda rad: int((factor - (factor / 255) * rad)))(self.radius)
+		return tuple([R, G, B, A])
+
+	def define_drawing_coordinates(self):
+		'''
+		- the drawing tool requires the shape's boundary coordinates in order to draw
+		- the shape's center coordinate and radius are used to compute the boundary points
+		'''
+		x0 = self.center[0] - self.radius # 180 deg position
+		x1 = self.center[0] + self.radius #   0 deg position
+		y0 = self.center[1] - self.radius # 270 deg position
+		y1 = self.center[1] + self.radius #  90 deg position
+		return tuple([x0, y0, x1, y1])
+
+	def draw_circle(self, drawing_tool):
+		'''
+		- using the PIL library, this function draws an ellipse with symmetrical 
+		  coordinates, thus drawing a circle
+		- the drawing tool is defined in the Painting object
+		'''
+		drawing_tool.ellipse(self.define_drawing_coordinates(), self.color)
+
+	def get_hypotenuse(self):
+		'''
+		- half of the hypotenuse of the width and height dimensions will be the 
+		  maximum possible radius defined for a shape
+		'''
+		return int(math.sqrt((self.width) ** 2 + (self.height) ** 2))
 
 
 if __name__ == "__main__":
-	shape1 = Shape(800, 600)
-	shape2 = Shape(800, 600)
+	colormap = [[[0,   0,  0], [28,  134, 28], [21,  86,  145]],
+				[[255, 34, 0], [128, 255, 0],  [0,   67,  255]],
+				[[255, 0,  0], [0,   255, 0],  [255, 255, 255]]]
 
-	print("Shape 1: {}".format(shape1.genotype))
-	print("Shape 2: {}".format(shape2.genotype))
-
-	pygame.init()
-	pygame.display.set_caption("Shape Test")
-	window = pygame.display.set_mode([shape1.width, shape1.height])
-	clock = pygame.time.Clock()
-
-	running = True
-	while running:
-		for event in pygame.event.get():
-			if event.type == QUIT: running = False
-		window.fill((255, 255, 255))
-
-		shape1.update()
-		window.blit(shape1.surf, shape1.rect)
-		shape2.update()
-		window.blit(shape2.surf, shape2.rect)
-
-		pygame.display.flip()
-		clock.tick(30)
-
-	pygame.quit()
+	shape = Shape(colormap = colormap, width = 3, height = 3)
+	print('{}'.format(shape))

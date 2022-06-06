@@ -1,7 +1,9 @@
 # POPULATION CLASS
 
 import random
-from agent import Agent
+from figure import Figure
+from painting import Painting
+from hyperparameters import Hyperparameters as hyp
 
 class Population:
 	'''
@@ -15,102 +17,146 @@ class Population:
 
 	ATTRIBUTES:
 		- array of agent objects with max population parameter
-		- mutation rate 
+		- the probabilistic rate at which a mutation can occur within a painting object
 		- target encoded array that the agents should strive for
 		- the size of the target
 		- array of children agent objects
 	'''
-	def __init__(self, max_population, mutation_rate, target):
+	def __init__(self, max_population, mutation_rate, target_path, size):
 		self.max_population = max_population
 		self.mutation_rate = mutation_rate
-		self.target = target
-		self.target_size = len(self.target)
-
-		self.population = [Agent(self.target_size) for _ in range(0, self.max_population)]
+		self.target_path = target_path
+		self.size = size
+		self.target = Figure(self.target_path)
+		self.population = [Painting(self.target.map, 
+									self.target.width, 
+									self.target.height, 
+									self.size) for _ in range(0, self.max_population)]
 		self.children = []
+		self.fit_arr = []
 
-	def choose_parent(self, weight):
-		return random.choices(self.population, weights = weight, k = 1)[0]
+	def choose_parent(self):
+		'''
+		- probablistically chooses an agent based on the agent's fitness score
+		- more fit organisms are more likely to be chosen as parents
+		'''
+		weights = [painting.fitness for painting in self.population]
+		return random.choices(self.population, weights = weights, k = 1)[0]
 
-	def generate_next_generation(self):
+	def evaluate_population(self):
+		'''
+		- every painting object generates an image based on its hyperparameters
+		  and thus, determines the fitness of the population
+		- fitnesses are sorted in descending order, with the most fit organism first
+		- the mean fitness of the population is recorded for analysis
+		'''
+		for painting in self.population: 
+			painting.create_painting()
+			painting.fitness = self.target.calculate_fitness(painting)
+		mean = self.calculate_mean_fitness()
+		self.fit_arr.append(mean)
+		self.sort_fitness()
+
+	def generate_next_generation(self, asexual = hyp.ASEXUAL_REP):
+		'''
+		- for a number of iterations half of that of the population
+		- children painting objects are generated
+			- option can be made to choose identical or non-identical parents
+		- children organisms have half/half genes from both parents
+		- a children array is accumulated with half the size of the population
+		'''
 		self.children = []
-		weights = [self._get_fitness(agent) for agent in self.population]
-
+		self.scale_fitness()
 		for _ in range(0, len(self.population), 2):
-			parent1 = self.choose_parent(weights)
-			parent2 = self.choose_parent(weights)
+			if asexual == True:
+				'''
+				- possibility of both parents being identical organisms
+				- (asexual reproduction)
+				'''
+				parent1 = self.choose_parent()
+				parent2 = self.choose_parent()
+			else:
+				'''
+				- organisms in the population must be unique in order to mate
+				- (sexual reproduction)
+				'''
+				parent1 = self.choose_parent()
+				parent2 = self.choose_parent()
+				while parent1 == parent2: parent2 = self.choose_parent()
 			child = parent1.crossover(parent2.genotype, self.mutation_rate)
 			self.children.append(child)
 
-	def adjust_population(self):
-		self.population = self.population[: int(len(self.population) / 2)] + self.children
+	def adjust_population(self, gen, random_integration = hyp.RANDOM_INT):
+		'''
+		- integrate the children organisms into the population
+		- an option for integration to produce a new population:
+			- pair the children with the most fit half of the original 
+			  population
+			- at random moments, to encourage variability among the 
+			  evolutionary process, pair the children with half of the 
+			  original population of any probablisitic fitness
+			  (more fit organisms are more likely to be put back into the population)
+		'''
+		if random_integration == True:
+			self.sort_fitness()
+			marker = 
+			if gen % marker == 0:
+				weights = [painting.fitness for painting in self.population]
+				self.population = self.sample(weights, k = int(0.5 * self.max_population)) + self.children
+			else:
+				self.population = self.population[: int(len(self.population) / 2)] + self.children
+		else:
+			self.population = self.population[: int(len(self.population) / 2)] + self.children
 
-	def compare_agent(self):
-		self.sort_fitness()
-		return self.population[0].__str__() == self.target
+	def sample(self, weights, k):
+		'''
+		- helper function to sample an array returning unique elements
+		- applied to population to return a new population half the size
+		- new population favors higher fitnesses and is combined with
+		  the children population to produce the overall population for
+		  the next generation
+		'''
+		weighted_arr = list(weights)
+		population_indices = range(len(self.population))
+		sample_indices = []
+		while True:
+			remaining = k - len(sample_indices)
+			if not remaining: break
+			for i in random.choices(population_indices, weights = weighted_arr, k = remaining):
+				if weighted_arr[i]:
+					weighted_arr[i] = 0.0
+					sample_indices.append(i)
+		return [self.population[i] for i in sample_indices]
 
 	def sort_fitness(self):
-		self.population.sort(reverse = True, key = self._get_fitness)
-
-	def calculate_fitness(self, agent):
 		'''
-		- compare pixel colors of target image to those of generated image
-		- if a pixel color is desirable, all shapes involved get a fitness point
-		- if for each shape: if radius < dist(x1, y1, x2, y2): pixel is within range
+		- organisms in the population are sorted by fitness
+		- the most fit organism is the first index of the sorted population
 		'''
-		gen_image = Figure(path = '../lib/image.png')
-		agent.fitness = 0
-		for i in range(0, self.target_size):
-			grey_pix = self.get_grey_pixel(agent.genotype[0])
-			color_fit_agent = self.compare_color(self.image.greyscale_data[i], grey_pix)
-			color_fit_image = self.compare_color(self.image.greyscale_data[i], gen_image.greyscale_data[i])
-			target_coor = self.get_coordinates(i)
-			pixel_dist = self.get_distance(target_coor, agent.genotype[1])
-			if (pixel_dist <= agent.genotype[2]):
-				agent.fitness += color_fit_agent
-				agent.fitness += color_fit_image
-		return agent.fitness
+		self.population.sort(reverse = True, key = lambda painting: painting.fitness)
 
-	def get_distance(self, target_coor, shape_coor):
-		return int(math.sqrt(((shape_coor[0] - target_coor[0]) ** 2) + ((shape_coor[1] - target_coor[1]) ** 2)))
-
-	def get_grey_pixel(self, color):
-		#return (color[0] + color[1] + color[2] + (3 * color[3])) / 4
-		return (color[0] * 0.299) + (color[1] * 0.587) + (color[2] * 0.114)
-
-	def get_coordinates(self, image_index):
-		return tuple([image_index % self.image.width, int(image_index / self.image.width)])
-
-	def compare_color(self, target_index, agent_index):
+	def scale_fitness(self):
 		'''
-		- compares a generated pixel's color to the target pixel's color
-		- returns a True or False if any of the RGB values are within a desirable range
-		- let a desirable pixel have a specified degrees of freedom
+		- organisms with higher fitnesses are emphasized
+		- to encourage a swift evolution, in a space of organisms with high fitnesses,
+		  more distinct organisms with higher fitnesses are more likely to be chosen
 		'''
-		r_diff = (target_index - agent_index)
-		g_diff = (target_index - agent_index)
-		b_diff = (target_index - agent_index)
-		color_diff = math.sqrt((r_diff ** 2) + (g_diff ** 2) + (b_diff ** 2))
-		return 255 - int(color_diff)
-		'''
-		r_fitness = abs(agent_index[0] - target_index[0])
-		g_fitness = abs(agent_index[1] - target_index[1])
-		b_fitness = abs(agent_index[2] - target_index[2])
-		return int((r_fitness + g_fitness + b_fitness) / 255)
-		'''
+		self.sort_fitness()
+		for i in range(0, len(self.population)):
+			self.population[i].fitness = int(10 * (self.max_population / ((i + 1) ** 0.5)))
 
-	def calculate_accuracy(self):
-		fitness = 0
-		target_fitness = 3 * self.image.width * self.image.height
-		for agent in self.population: fitness += agent.fitness
-		return 100 * (fitness / target_fitness)
+	def calculate_mean_fitness(self):
+		'''
+		'''
+		fitness_arr = [painting.fitness for painting in self.population]
+		return sum(fitness_arr) / len(fitness_arr)
 
 
 if __name__ == "__main__":
-	population = Population(1000, 0.01, "to be or not to be.")
+	population = Population(10, 0.01, "../lib/test_target0.png", size = 500)
 	population.sort_fitness()
 
 	for agent in population.population[:10]:
 		print("Fitness: {}".format(agent.fitness))
 
-	print("Most fit genotype: {}".format(population.population[0]))
+	#print("Most fit genotype: {}".format(population.population[0]))
