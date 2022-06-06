@@ -22,22 +22,23 @@ class Shape:
 		- a randomly defined coordinate representing the shape's center
 		- a tuple of RGBA values for the shape
 	'''
-	def __init__(self, colormap, width, height, factor):
+	def __init__(self, colormap: list, width: int, height: int, factor: float) -> None:
 		self.colormap = colormap
 		self.width = width
 		self.height = height
 		self.factor = factor
 		self.radius = int(0.5 * random.gammavariate(self.factor, 0.1 * self.get_hypotenuse()))
-		self.center = (random.randint(0, self.width - 1), random.randint(0, self.height - 1))
+		self.center = [random.randint(0, self.width - 1), random.randint(0, self.height - 1)]
 		self.color = self.define_color()
+		#self.color.append(self.define_transparency())
 
-	def __str__(self):
+	def __str__(self) -> str:
 		'''
 		- reads out key specs fo the shape -> (color, center coordinate, radius)
 		'''
 		return "Color: {0}; Radius: {1}; Center: {2}".format(self.color, self.radius, self.center)
 
-	def define_color(self):
+	def define_color(self) -> list:
 		'''
 		- accessing the color map's dimensions to extract each RGB value
 		- color is based on the shape's center coordinate
@@ -46,14 +47,19 @@ class Shape:
 			- larger, more transparent shapes will occupy the background,
 			  while smaller, more opaque shapes will occupy the foreground
 		'''
-		factor = hyp.TRANSLUCENCY_FACTOR * self.get_hypotenuse()
+		#factor = hyp.TRANSLUCENCY_FACTOR * self.get_hypotenuse()
 		R = self.colormap[self.center[1]][self.center[0]][0]
 		G = self.colormap[self.center[1]][self.center[0]][1]
 		B = self.colormap[self.center[1]][self.center[0]][2]
-		A = (lambda rad: int((factor - (factor / 255) * rad)))(self.radius)
-		return tuple([R, G, B, A])
+		A = random.randint(0, 255) # (lambda rad: int((factor - (factor / 255) * rad)))(self.radius)
+		return [R, G, B, A]
 
-	def define_drawing_coordinates(self):
+	'''
+	def define_transparency(self):
+		return random.randint(0, 255)#(lambda rad: int((factor - (factor / 255) * rad)))(self.radius)
+	'''
+
+	def define_drawing_coordinates(self) -> list:
 		'''
 		- the drawing tool requires the shape's boundary coordinates in order to draw
 		- the shape's center coordinate and radius are used to compute the boundary points
@@ -62,17 +68,17 @@ class Shape:
 		x1 = self.center[0] + self.radius #   0 deg position
 		y0 = self.center[1] - self.radius # 270 deg position
 		y1 = self.center[1] + self.radius #  90 deg position
-		return tuple([x0, y0, x1, y1])
+		return [x0, y0, x1, y1]
 
-	def draw_circle(self, drawing_tool):
+	def draw_circle(self, drawing_tool: object) -> None:
 		'''
 		- using the PIL library, this function draws an ellipse with symmetrical 
 		  coordinates, thus drawing a circle
 		- the drawing tool is defined in the Painting object
 		'''
-		drawing_tool.ellipse(self.define_drawing_coordinates(), self.color)
+		drawing_tool.ellipse(tuple(self.define_drawing_coordinates()), tuple(self.color))
 
-	def get_hypotenuse(self):
+	def get_hypotenuse(self) -> int:
 		'''
 		- half of the hypotenuse of the width and height dimensions will be the 
 		  maximum possible radius defined for a shape
@@ -85,5 +91,5 @@ if __name__ == "__main__":
 				[[255, 34, 0], [128, 255, 0],  [0,   67,  255]],
 				[[255, 0,  0], [0,   255, 0],  [255, 255, 255]]]
 
-	shape = Shape(colormap = colormap, width = 3, height = 3)
+	shape = Shape(colormap = colormap, width = 3, height = 3, factor = 1)
 	print('{}'.format(shape))

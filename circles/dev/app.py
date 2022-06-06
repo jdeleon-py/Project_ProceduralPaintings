@@ -1,6 +1,6 @@
 # APP CLASS
 
-import tkinter
+import tkinter as tk
 
 class App:
 	'''
