@@ -99,7 +99,7 @@ class Population:
 		'''
 		if random_integration == True:
 			self.sort_fitness()
-			marker = 
+			marker = 0
 			if gen % marker == 0:
 				weights = [painting.fitness for painting in self.population]
 				self.population = self.sample(weights, k = int(0.5 * self.max_population)) + self.children
