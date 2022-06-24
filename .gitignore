@@ -9,6 +9,9 @@ __pycache__/
 # Global Mac Extension
 **/.DS_Store
 
+# jupyter notebooks
+**/jupyter_notebooks
+
 # Distribution / packaging
 .Python
 build/
