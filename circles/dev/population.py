@@ -99,7 +99,7 @@ class Population:
 		'''
 		if random_integration == True:
 			self.sort_fitness()
-			marker = 1
+			marker = 0
 			if gen % marker == 0:
 				weights = [painting.fitness for painting in self.population]
 				self.population = self.sample(weights, k = int(0.5 * self.max_population)) + self.children
@@ -137,7 +137,7 @@ class Population:
 
 	def scale_fitness(self):
 		'''
-		- organisms with higher fitnesses are accentuated
+		- organisms with higher fitnesses are emphasized
 		- to encourage a swift evolution, in a space of organisms with high fitnesses,
 		  more distinct organisms with higher fitnesses are more likely to be chosen
 		'''

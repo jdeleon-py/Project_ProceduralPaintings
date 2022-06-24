@@ -17,22 +17,11 @@ class Hyperparameters:
 	'''
 	HYPERPARAMETER = 0
 
-	SORT_GENOTYPE_MODE = 'X'
-	MUTATION_MODE = '1'
-
-	GENE_INTEGRATION = True
-	STARTING_GENE_NUM = 3
-	MAX_GENE_NUM = 500
-
-	MAX_GENERATIONS = 30000
-
-	SHAPE_SIZE_FACTOR = 0.7
-
 	'''
 	POPULATION DATA
 	- the number of paintings integrated for every generation
 	'''
-	POPULATION_SIZE = 100
+	POPULATION_SIZE = 50
 
 	'''
 	AGENT DATA
@@ -47,14 +36,7 @@ class Hyperparameters:
 	- all possible types will be listed
 	- the collective sum of the probabilities must equal 100
 	'''
-	MUTATION_RATE = 0.15
-
-	SHAPE_MUTATION_PROB = 0.99
-	GENE_MUTATION_PROB = 0.01
-
-	ADD_GENE_PROB = 0.8
-	SUBTRACT_GENE_PROB = 0.2
-
+	MUTATION_RATE = 0.05
 	SHIFT_MUTATION_PROB = 30
 	RADIUS_MUTATION_PROB = 30
 	COLOR_MUTATION_PROB = 30
@@ -80,7 +62,7 @@ class Hyperparameters:
 	  for the next generation, or allow for the children to be integrated
 	  with any of the population with probablistic determination
 	'''
-	RANDOM_INT = True
+	RANDOM_INT = False
 
 	'''
 	FILE
